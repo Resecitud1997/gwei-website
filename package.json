@@ -1,0 +1,12 @@
+{
+  "name": "mi-proyecto-cloudflare",
+  "version": "1.0.0",
+  "description": "Proyecto desplegado en Cloudflare Pages",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Construyendo el proyecto...'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
