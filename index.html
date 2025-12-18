@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gana Gwei Compartiendo Internet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: monospace; background: #f0f0f0; padding: 20px; }
+        .container { background: white; padding: 20px; border: 1px solid #ccc; max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; }
+        button:disabled { background: #999; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Panel de Control de Banda Ancha</h1>
+    <p>Estado: <span id="status">Desconectado</span></p>
+    <p>Tu Billetera: <span id="walletAddress">--</span></p>
+    <hr />
+    
+    <h3>Tus Ganancias</h3>
+    <p>Saldo en Contrato: <span id="contractBalance">0</span> Gwei</p>
+    <button id="connectBtn">1. Conectar MetaMask</button>
+    <button id="withdrawBtn" disabled>2. Retirar a MetaMask</button>
+</div>
+
+<script>
+    const CONTRACT_ADDRESS = "TU_DIRECCION_DE_CONTRATO_AQUI";
+    const CONTRACT_ABI = [
+        "function withdraw() external",
+        "function balances(address) view returns (uint256)"
+    ];
+
+    let provider, signer, contract;
+
+    async function connectWallet() {
+        if (window.ethereum) {
+            try {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                const address = await signer.getAddress();
+                
+                document.getElementById("walletAddress").innerText = address;
+                document.getElementById("status").innerText = "Conectado";
+                document.getElementById("connectBtn").style.display = "none";
+                document.getElementById("withdrawBtn").disabled = false;
+
+                // Guardar address para que la extensión la lea (esto requiere comunicación extra en prod)
+                // Por ahora, inicializamos el contrato
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                checkBalance(address);
+
+            } catch (error) {
+                console.error(error);
+                alert("Error conectando wallet");
+            }
+        } else {
+            alert("Por favor instala MetaMask");
+        }
+    }
+
+    async function checkBalance(address) {
+        try {
+            const balance = await contract.balances(address);
+            document.getElementById("contractBalance").innerText = balance.toString();
+        } catch (e) {
+            console.log("Error leyendo balance", e);
+        }
+    }
+
+    async function withdraw() {
+        try {
+            const tx = await contract.withdraw();
+            document.getElementById("status").innerText = "Procesando retiro...";
+            await tx.wait();
+            alert("¡Retiro exitoso! Revisa tu MetaMask.");
+            document.getElementById("status").innerText = "Conectado";
+            checkBalance(await signer.getAddress());
+        } catch (error) {
+            console.error(error);
+            alert("Error en el retiro: " + (error.reason || error.message));
+        }
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", connectWallet);
+    document.getElementById("withdrawBtn").addEventListener("click", withdraw);
+</script>
+
+</body>
+</html>
